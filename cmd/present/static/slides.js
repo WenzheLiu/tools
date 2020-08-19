@@ -226,6 +226,16 @@ function nextSlide() {
   if (notesEnabled) localStorage.setItem('destSlide', curSlide);
 };
 
+function openSlide(slideNum) {
+  hideHelpText();
+  if (slideNum >= 0 && slideNum < slideEls.length) {
+    curSlide = slideNum
+    updateSlides();
+  }
+
+  if (notesEnabled) localStorage.setItem('destSlide', curSlide);
+};
+
 /* Slide events */
 
 function triggerEnterEvent(no) {

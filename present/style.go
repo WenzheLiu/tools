@@ -41,7 +41,23 @@ func font(s string) string {
 	if !strings.ContainsAny(s, "[`_*") {
 		return s
 	}
-	words := split(s)
+
+	skipSplit := false
+	if len(s) > 2 {
+		for _, tag := range []byte("`_*") {
+			if s[0] == tag && s[len(s)-1] == tag {
+				skipSplit = true
+				break
+			}
+		}
+	}
+
+	var words []string
+	if skipSplit {
+		words = []string{s}
+	} else {
+		words = split(s)
+	}
 	var b bytes.Buffer
 Word:
 	for w, word := range words {
@@ -68,17 +84,40 @@ Word:
 		open, word := word[:first], word[first:]
 		char := word[0] // ASCII is OK.
 		close := ""
+
+		const quote = "&#34;"
+		const style = "style=" + quote
+		css := ""
+		if len(word) > 1 + len(style) + len(quote) && strings.HasPrefix(word[1:], style) {
+			q := strings.Index(word[1 + len(style):], quote)
+			if q != -1 {
+				css = word[1+len(style):1+len(style)+q]
+			}
+		}
+
 		switch char {
 		default:
 			continue Word
 		case '_':
-			open += "<i>"
+			if css == "" {
+				open += "<i>"
+			} else {
+				open += "<i style=" + css + ">"
+			}
 			close = "</i>"
 		case '*':
-			open += "<b>"
+			if css == "" {
+				open += "<b>"
+			} else {
+				open += "<b style=" + css + ">"
+			}
 			close = "</b>"
 		case '`':
-			open += "<code>"
+			if css == "" {
+				open += "<code>"
+			} else {
+				open += "<code style=" + css + ">"
+			}
 			close = "</code>"
 		}
 		// Closing marker must be at the end of the token or else followed by punctuation.
@@ -96,7 +135,11 @@ Word:
 		b.Reset()
 		b.WriteString(open)
 		var wid int
-		for i := 1; i < len(head)-1; i += wid {
+		start := 1
+		if css != "" {
+			start += len(style) + len(css) + len(quote)
+		}
+		for i := start; i < len(head)-1; i += wid {
 			var r rune
 			r, wid = utf8.DecodeRuneInString(head[i:])
 			if r != rune(char) {
